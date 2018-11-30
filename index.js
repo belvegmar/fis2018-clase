@@ -8,7 +8,7 @@ var path = require("path");                     //Estas dos variables sirven par
 const CONTACTS_APP_DIR = "/dist/contacts-app"   //a las páginas de angular
 
 
-var port = 3000;
+var port = (process.env.PORT || 3000);
 var BASE_URL = "/api/v1";
 var filename = __dirname +"/contacts.json" //__dirname = Directorio actual
 
