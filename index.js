@@ -16,37 +16,39 @@ var contacts = [
     {"name":"juan", "phone":5555} //contactos por defecto
 ];
 
-
-console.log("Starting API server..."); //Esto es para imprimir
-
-var app = express(); /*Inicializar la librería express, esta variable es la que utilizaré 
-                        para configurar mi servidor*/  
-
-app.use(express.static(path.join(__dirname,CONTACTS_APP_DIR))); //Utiliza la ruta dist/contacts-app por defecto
-app.get('/',function(req,res){
-    res.sendFile(path.join(__dirname,CONTACTS_APP_DIR,'/index.html'))
-})
-                        
 var db = new DataStore({
     filename:filename,
     autoload:true
 });
 
 
+console.log("Starting API server..."); //Esto es para imprimir
 
-
+var app = express(); /*Inicializar la librería express, esta variable es la que utilizaré 
+                        para configurar mi servidor*/  
 app.use(bodyparser.json());     
-app.use(cors());             
+app.use(cors());          
+app.use(express.static(path.join(__dirname,CONTACTS_APP_DIR))); //Utiliza la ruta dist/contacts-app por defecto
+app.get('/',function(req,res){
+    res.sendFile(path.join(__dirname,CONTACTS_APP_DIR,'/index.html'))
+})
+                        
+
+
+
+
+
+   
                         
 /* #############################################################################
  ##############################   GET        ###################################
 ################################################################################*/
 
-// app.get("/", (req, res) => { /*Cuando haga un get, va hacia el recurso "/", el segundo parámetro indica qué acción se hará
-//                                 cuando se haga una petición. El res es lo que se devolverá. En definitiva, cuando
-//                                 haga un get a /, se ejecutará el res.send */
-//     res.send("<html><body><h1>My server</h1></body></html>");
-// });
+app.get("/", (req, res) => { /*Cuando haga un get, va hacia el recurso "/", el segundo parámetro indica qué acción se hará
+                                cuando se haga una petición. El res es lo que se devolverá. En definitiva, cuando
+                                haga un get a /, se ejecutará el res.send */
+    res.send("<html><body><h1>My server</h1></body></html>");
+});
 
 app.get(BASE_URL+"/contacts", (req,res)=>{
     db.find({}, (err, contacts)=> {         /*Devuelve todo el contenido del fichero si no indico nada entre los {}*/
@@ -92,14 +94,18 @@ app.get(BASE_URL + "/contacts/:name", (req, res) => {
 ################################################################################*/
 
 app.post(BASE_URL+ "/contacts", (req,res)=>{
+    // Create a new contact
+    console.log(Date()+" - POST /contacts");
     var contact = req.body;
     db.insert(contact);
     res.sendStatus(201);  
 });
 
-app.listen(port); //Activa el servidor para que escuche en ese puerto
-
-console.log("Server ready!");
+app.post(BASE_URL + "/contacts/:name", (req, res) => {
+    // Forbidden
+    console.log(Date()+" - POST /contacts");
+    res.sendStatus(405);
+});
 
 /* #############################################################################
  ##############################  DELETE     ####################################
@@ -107,9 +113,7 @@ console.log("Server ready!");
 app.delete(BASE_URL + "/contacts", (req, res) => {
     // Remove all contacts
     console.log(Date()+" - DELETE /contacts");
-
-    db.remove({});
-    
+    db.remove({});    
     res.sendStatus(200);
 });
 
@@ -145,3 +149,35 @@ app.put(BASE_URL + "/contacts", (req, res) => {
 
     res.sendStatus(405);
 });
+
+app.put(BASE_URL + "/contacts/:name", (req, res) => {
+    // Update contact
+    var name = req.params.name;
+    var updatedContact = req.body;
+    console.log(Date()+" - PUT /contacts/"+name);
+
+    if(name != updatedContact.name){
+        res.sendStatus(409);
+        return;
+    }
+
+    db.update({"name": name},updatedContact,(err,numUpdated)=>{
+        if(err){
+            console.error("Error accesing DB");
+            res.sendStatus(500);
+        }else{
+            if(numUpdated>1){
+                console.warn("Incosistent DB: duplicated name");
+            }else if(numUpdated == 0) {
+                res.sendStatus(404);
+            } else {
+                res.sendStatus(200);
+            }
+        }
+    });
+});
+
+
+app.listen(port); //Activa el servidor para que escuche en ese puerto
+
+console.log("Server ready!");
